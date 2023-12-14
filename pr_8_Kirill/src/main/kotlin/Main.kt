@@ -1,0 +1,82 @@
+import java.util.concurrent.locks.ReentrantLock
+
+var philosopherCount = 0
+
+// Класс, представляющий философа
+class Philosopher(val id: String, val leftFork: ReentrantLock, val rightFork: ReentrantLock) : Runnable {
+    override fun run() {
+        eat()
+    }
+
+    // Метод, который позволяет философу есть
+    private fun eat() {
+        var isEating = true
+        while (isEating) {
+            // Пробуем захватить обе вилки
+            if (leftFork.tryLock() && rightFork.tryLock()) {
+                println("Философ $id обедает, используя левую и правую вилки.")
+                isEating = false
+            } else {
+                // Если одна или обе вилки заняты, то философ размышляет
+                isEating = false
+                println("Философ $id размышляет.")
+            }
+        }
+    }
+}
+
+fun main() {
+    // Ввод количества философов за круглым столом
+    philosopherCount = enterPhilosopherCount()
+    val names = Array(philosopherCount) { "" }
+
+    // Ввод имен философов
+    for (i in 0 until philosopherCount) {
+        names[i] = enterPhilosopherName(i + 1)
+    }
+
+    println("=== === === === ===")
+    val forks = List(philosopherCount) { ReentrantLock() }
+
+    // Создание списка философов и запуск каждого в отдельном потоке
+    val philosophers = List(philosopherCount) { id ->
+        Philosopher(
+            names[id],
+            forks[id],
+            forks[(id + 1) % forks.size]
+        )
+    }
+
+    philosophers.forEach { Thread(it).start() }
+}
+
+// Функция для ввода количества философов
+// Возвращает целое положительное число - количество философов за круглым столом
+fun enterPhilosopherCount(): Int {
+    var philosopherCount = 0
+    var valid = false
+
+    do {
+        print("Сколько философов за круглым столом? Введите целое число: ")
+        try {
+            philosopherCount = readLine()?.toInt() ?: 0
+            valid = true
+        } catch (e: NumberFormatException) {
+            println("Ошибка. Введите целое число.")
+        }
+    } while (!valid || philosopherCount <= 0)
+
+    return philosopherCount
+}
+
+// Функция для ввода имени философа
+// Принимает номер философа, чтобы вывести соответствующий приглашение
+// Возвращает имя философа (не пустую строку)
+fun enterPhilosopherName(philosopherNumber: Int): String {
+    var name = ""
+    while (name.isBlank()) {
+        print("Введите имя философа $philosopherNumber: ")
+        name = readLine()?.trim() ?: ""
+    }
+    return name
+}
